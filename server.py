@@ -92,7 +92,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_DELETE(self):
         self.send_response(200)
         self._send_cors_headers()
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Content-type', 'application/json')
         self.end_headers()
 
         content_length = int(self.headers['Content-Length'])
