@@ -13,18 +13,29 @@ gc = gspread.authorize(credentials)
 
 SPREADSHEET_ID = '1iTFZbpKfGyMM88zAwuwA4ts53sVLl8krB1kn3hfl-9M'
 
+# 1. Add your Cloudflare URL at the top of your file
+ALLOWED_ORIGIN = "https://drug-info.himanshul-k-dhanshal.workers.dev"
+
 class RequestHandler(BaseHTTPRequestHandler):
+    # 2. Add this helper function to verify the origin
+    def _send_cors_headers(self):
+        origin = self.headers.get('Origin')
+        # Only attach CORS headers IF the origin exactly matches your Cloudflare URL
+        if origin == ALLOWED_ORIGIN:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+    # 3. Add this function to handle browser "preflight" security checks
     def do_OPTIONS(self):
         self.send_response(200, "ok")
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-        self.send_header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type")
+        self._send_cors_headers()
         self.end_headers()
 
     def do_GET(self):
         self.send_response(200)
+        self._send_cors_headers()
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
 
         try:
@@ -40,8 +51,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         self.send_response(200)
+        self._send_cors_headers()
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
 
         content_length = int(self.headers['Content-Length'])
@@ -60,8 +71,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_PUT(self):
         self.send_response(200)
+        self._send_cors_headers()
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
 
         content_length = int(self.headers['Content-Length'])
@@ -80,7 +91,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         self.send_response(200)
-        self.send_header('Content-type', 'application/json')
+        self._send_cors_headers()
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
 
