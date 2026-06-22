@@ -133,8 +133,11 @@
         let currentData = [];
         let editingRowNum = null;
 
+        // Ensure this key matches the one in server.py
+        const backendUrl = "https://drug-info-backend-7jbi.onrender.com/?key=YourSuperSecretPassword123";
+
         function loadData() {
-            fetch('https://drug-info-backend-7jbi.onrender.com')
+            fetch(backendUrl)
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
@@ -161,6 +164,9 @@
                     } else if (data.length === 0) {
                         document.getElementById('table-body').innerHTML = `<tr><td colspan="100%">No data found.</td></tr>`;
                     }
+                })
+                .catch(err => {
+                    document.getElementById('table-body').innerHTML = `<tr><td colspan="100%" style="color:red">Connection failed. Check server status.</td></tr>`;
                 });
         }
 
@@ -201,7 +207,7 @@
                 method = 'PUT';
             }
 
-            fetch('https://drug-info-backend-7jbi.onrender.com', {
+            fetch(backendUrl, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newData),
@@ -241,7 +247,7 @@
         function deleteData(rowNum) {
             if (!confirm("Are you sure you want to delete this row?")) return;
 
-            fetch('https://drug-info-backend-7jbi.onrender.com', {
+            fetch(backendUrl, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ _row_num: rowNum }),

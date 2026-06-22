@@ -13,11 +13,12 @@ gc = gspread.authorize(credentials)
 
 SPREADSHEET_ID = '1iTFZbpKfGyMM88zAwuwA4ts53sVLl8krB1kn3hfl-9M'
 
-# 1. Add your Cloudflare URL at the top of your file
+# Security Variables
 ALLOWED_ORIGIN = "https://drug-info.himanshul-k-dhanshal.workers.dev"
+SECRET_API_KEY = "YourSuperSecretPassword123"  # You can change this to a unique password
 
 class RequestHandler(BaseHTTPRequestHandler):
-    # 2. Add this helper function to verify the origin
+    
     def _send_cors_headers(self):
         origin = self.headers.get('Origin')
         # Only attach CORS headers IF the origin exactly matches your Cloudflare URL
@@ -26,13 +27,21 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
-    # 3. Add this function to handle browser "preflight" security checks
     def do_OPTIONS(self):
         self.send_response(200, "ok")
         self._send_cors_headers()
         self.end_headers()
 
     def do_GET(self):
+        # API Key Authorization Check
+        if f"key={SECRET_API_KEY}" not in self.path:
+            self.send_response(403)
+            self._send_cors_headers()
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Unauthorized Access Denied"}).encode('utf-8'))
+            return
+
         self.send_response(200)
         self._send_cors_headers()
         self.send_header('Content-type', 'application/json')
@@ -50,6 +59,15 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(response.encode('utf-8'))
 
     def do_POST(self):
+        # API Key Authorization Check
+        if f"key={SECRET_API_KEY}" not in self.path:
+            self.send_response(403)
+            self._send_cors_headers()
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Unauthorized Access Denied"}).encode('utf-8'))
+            return
+
         self.send_response(200)
         self._send_cors_headers()
         self.send_header('Content-type', 'application/json')
@@ -70,6 +88,15 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(response.encode('utf-8'))
 
     def do_PUT(self):
+        # API Key Authorization Check
+        if f"key={SECRET_API_KEY}" not in self.path:
+            self.send_response(403)
+            self._send_cors_headers()
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Unauthorized Access Denied"}).encode('utf-8'))
+            return
+
         self.send_response(200)
         self._send_cors_headers()
         self.send_header('Content-type', 'application/json')
@@ -90,6 +117,16 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(response.encode('utf-8'))
 
     def do_DELETE(self):
+        # API Key Authorization Check
+        if f"key={SECRET_API_KEY}" not in self.path:
+            self.send_response(403)
+            self._send_cors_headers()
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Unauthorized Access Denied"}).encode('utf-8'))
+            return
+
+        # Fixed CORS headers here
         self.send_response(200)
         self._send_cors_headers()
         self.send_header('Content-type', 'application/json')
