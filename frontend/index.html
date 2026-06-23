@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Sheets App</title>
+    <title>Pharma Relational Dashboard</title>
     <style>
         :root {
             --primary: #4F46E5;
@@ -12,258 +12,188 @@
             --text-color: #111827;
             --border-color: #E5E7EB;
         }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.5;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        h1 { margin-top: 0; color: var(--primary); }
-        .form-container {
-            background-color: var(--bg-color);
-            padding: 20px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 20px;
-        }
-        .input-group {
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-        }
-        .input-group label {
-            width: 150px;
-            font-weight: 600;
-        }
-        input[type="text"] {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .search-container {
-            margin-bottom: 20px;
-        }
-        #search-input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.2s;
-        }
-        button:hover { background-color: var(--primary-hover); }
-        button.danger { background-color: #EF4444; }
-        button.danger:hover { background-color: #DC2626; }
-        button.secondary { background-color: #6B7280; }
-        button.secondary:hover { background-color: #4B5563; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: var(--primary); margin-top: 0; }
         
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            white-space: nowrap;
-        }
+        .search-container { margin-bottom: 20px; }
+        #search-input { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 16px; box-sizing: border-box; }
         
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-        th {
-            background-color: var(--bg-color);
-            font-weight: 600;
-        }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: var(--bg-color); font-weight: 600; }
         tr:hover { background-color: #F3F4F6; }
-        .action-buttons { display: flex; gap: 8px; }
+        
+        button { background-color: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: 0.2s; font-weight: 500;}
+        button:hover { background-color: var(--primary-hover); }
+        .info-btn { background-color: #10B981; font-size: 13px;}
+        .info-btn:hover { background-color: #059669; }
+
+        /* Modal Overlay Styles */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-card {
+            background: white; padding: 30px; border-radius: 8px; width: 550px; max-width: 90%;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); max-height: 85vh; overflow-y: auto;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; }
+        .close-btn { background: transparent; color: #6B7280; font-size: 28px; padding: 0; cursor: pointer; border: none;}
+        .close-btn:hover { color: #111827; background: transparent; }
+        
+        .detail-row { margin-bottom: 16px; }
+        .detail-label { font-weight: 600; color: #6B7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .detail-value { margin-top: 4px; font-size: 15px; color: #111827;}
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>My Google Sheets Data</h1>
-        
-        <div class="form-container" id="add-form-container" style="display: none;">
-            <h3 id="form-title" style="margin-top: 0;">Add New Record</h3>
-            <form id="add-form"></form>
-            <div style="margin-top: 15px;">
-                <button id="submit-btn" onclick="submitData()">Submit</button>
-                <button id="cancel-btn" class="secondary" onclick="cancelEdit()" style="display: none;">Cancel</button>
-            </div>
-        </div>
 
-        <div class="search-container">
-            <input type="text" id="search-input" placeholder="Search records..." onkeyup="filterTable()">
-        </div>
-
-        <div class="table-responsive">
-            <table>
-                <thead id="table-head"></thead>
-                <tbody id="table-body"></tbody>
-            </table>
-        </div>
+<div class="container">
+    <h1>Pharma Inventory Dashboard</h1>
+    
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="Search by brand, molecule, or manufacturer..." onkeyup="renderTable()">
     </div>
+    
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Product ID</th>
+                    <th>Brand Name</th>
+                    <th>Molecule</th>
+                    <th>Strength</th>
+                    <th>Dosage Form</th>
+                    <th>Manufacturer</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <tr><td colspan="7" style="text-align:center;">Loading database...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
-    <script>
-        let sheetHeaders = [];
-        let currentData = [];
-        let editingRowNum = null;
+<div class="modal-overlay" id="details-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 id="modal-brand-name">Brand Name</h2>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div id="modal-content">
+            </div>
+    </div>
+</div>
 
-        // Ensure this key matches the one in server.py
-        const backendUrl = "https://drug-info-backend-7jbi.onrender.com/?key=YourSuperSecretPassword123";
+<script>
+    const API_KEY = "YourSuperSecretPassword123";
+    // UPDATE THIS WITH YOUR RENDER URL
+    const BACKEND_URL = `https://YOUR_RENDER_URL_HERE.onrender.com/?key=${API_KEY}`; 
+    
+    // The "Engine" holding both tables in the browser memory
+    let db = { molecules: [], inventory: [] };
 
-        function loadData() {
-            fetch(backendUrl)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        document.getElementById('table-body').innerHTML = `<tr><td colspan="100%" style="color:red">Error: ${data.error}</td></tr>`;
-                        return;
-                    }
-                    
-                    currentData = data;
-                    sheetHeaders = data.length > 0 ? Object.keys(data[0]).filter(h => h !== '_row_num') : sheetHeaders;
-                    
-                    if (sheetHeaders.length > 0) {
-                        document.getElementById('table-head').innerHTML = 
-                            '<tr>' + sheetHeaders.map(h => `<th>${h}</th>`).join('') + '<th>Actions</th></tr>';
-                        
-                        renderTableBody(currentData);
-
-                        document.getElementById('add-form-container').style.display = 'block';
-                        document.getElementById('add-form').innerHTML = sheetHeaders.map(h => 
-                            `<div class="input-group">
-                                <label>${h}</label>
-                                <input type="text" id="input-${h}">
-                            </div>`
-                        ).join('');
-                    } else if (data.length === 0) {
-                        document.getElementById('table-body').innerHTML = `<tr><td colspan="100%">No data found.</td></tr>`;
-                    }
-                })
-                .catch(err => {
-                    document.getElementById('table-body').innerHTML = `<tr><td colspan="100%" style="color:red">Connection failed. Check server status.</td></tr>`;
-                });
-        }
-
-        function renderTableBody(dataToRender) {
-            if (dataToRender.length === 0) {
-                document.getElementById('table-body').innerHTML = `<tr><td colspan="100%">No matching records found.</td></tr>`;
-                return;
-            }
+    async function loadDatabase() {
+        try {
+            const response = await fetch(BACKEND_URL);
+            if (!response.ok) throw new Error("Server rejected the request. Check your API key and URL.");
             
-            document.getElementById('table-body').innerHTML = dataToRender.map(row => 
-                '<tr>' + 
-                sheetHeaders.map(h => `<td>${row[h]}</td>`).join('') + 
-                `<td class="action-buttons">
-                    <button onclick="editData(${row._row_num})">Edit</button>
-                    <button class="danger" onclick="deleteData(${row._row_num})">Delete</button>
-                </td>` +
-                '</tr>'
-            ).join('');
+            db = await response.json();
+            renderTable();
+        } catch (error) {
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Connection Error: ${error.message}</td></tr>`;
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById("table-body");
+        const searchTerm = document.getElementById("search-input").value.toLowerCase();
+        tbody.innerHTML = "";
+
+        if (!db.inventory) return;
+
+        // Filter functionality
+        const filteredProducts = db.inventory.filter(item => {
+            return Object.values(item).some(val => String(val).toLowerCase().includes(searchTerm));
+        });
+
+        filteredProducts.forEach(product => {
+            // Relational Match: Find the parent molecule name using the ID
+            const molecule = db.molecules.find(m => m.Molecule_ID === product.Molecule_ID);
+            const moleculeName = molecule ? molecule.Molecule_Name : product.Molecule_ID;
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td style="color: #6B7280; font-family: monospace;">${product.Product_ID || ''}</td>
+                <td><strong>${product.Brand_Name || ''}</strong></td>
+                <td>${moleculeName || ''}</td>
+                <td>${product.Strength || ''}</td>
+                <td>${product.Dosage_Form || ''}</td>
+                <td>${product.Manufacturer || ''}</td>
+                <td>
+                    <button class="info-btn" onclick="showDetails('${product.Product_ID}')">View Medical Info</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function showDetails(productId) {
+        // Step 1: Grab the child product
+        const product = db.inventory.find(p => p.Product_ID === productId);
+        if (!product) return;
+        
+        // Step 2: Grab the parent medical data using the linked Molecule_ID
+        const molecule = db.molecules.find(m => m.Molecule_ID === product.Molecule_ID);
+        
+        document.getElementById("modal-brand-name").innerText = product.Brand_Name || "Drug Details";
+        
+        let contentHtml = `
+            <div class="detail-row">
+                <div class="detail-label">Active Pharmaceutical Ingredient</div>
+                <div class="detail-value" style="color: var(--primary); font-weight: 500;">
+                    ${molecule ? molecule.Molecule_Name : 'Unknown'} (${product.Strength})
+                </div>
+            </div>
+        `;
+
+        // Step 3: Inject the core medical data if the relational link exists
+        if (molecule) {
+            contentHtml += `
+                <div class="detail-row">
+                    <div class="detail-label">Pharmacological Class</div>
+                    <div class="detail-value">${molecule.Pharm_Class || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Indications</div>
+                    <div class="detail-value">${molecule.Indications || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Side Effects</div>
+                    <div class="detail-value">${molecule.Side_Effects || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Contraindications</div>
+                    <div class="detail-value">${molecule.Contraindications || 'N/A'}</div>
+                </div>
+            `;
+        } else {
+            contentHtml += `<p style="color:#EF4444; background: #FEF2F2; padding: 10px; border-radius: 4px;">Medical data for molecule ID '${product.Molecule_ID}' is missing in the core dataset.</p>`;
         }
 
-        function filterTable() {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const filteredData = currentData.filter(row => {
-                return sheetHeaders.some(h => String(row[h]).toLowerCase().includes(query));
-            });
-            renderTableBody(filteredData);
-        }
+        document.getElementById("modal-content").innerHTML = contentHtml;
+        document.getElementById("details-modal").style.display = "flex";
+    }
 
-        function submitData() {
-            const newData = {};
-            sheetHeaders.forEach(h => {
-                newData[h] = document.getElementById(`input-${h}`).value;
-            });
+    function closeModal() {
+        document.getElementById("details-modal").style.display = "none";
+    }
 
-            let method = 'POST';
-            if (editingRowNum) {
-                newData['_row_num'] = editingRowNum;
-                method = 'PUT';
-            }
+    // Initialize the App
+    loadDatabase();
+</script>
 
-            fetch(backendUrl, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newData),
-            })
-            .then(response => response.json())
-            .then(result => {
-                if(result.status === 'success') {
-                    document.getElementById('search-input').value = ''; 
-                    loadData(); 
-                    cancelEdit();
-                } else {
-                    alert('Error: ' + result.error);
-                }
-            });
-        }
-
-        function editData(rowNum) {
-            const row = currentData.find(r => r._row_num === rowNum);
-            sheetHeaders.forEach(h => {
-                document.getElementById(`input-${h}`).value = row[h];
-            });
-            editingRowNum = rowNum;
-            document.getElementById('form-title').innerText = "Edit Record";
-            document.getElementById('submit-btn').innerText = "Update";
-            document.getElementById('cancel-btn').style.display = "inline-block";
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function cancelEdit() {
-            editingRowNum = null;
-            document.getElementById('add-form').reset();
-            document.getElementById('form-title').innerText = "Add New Record";
-            document.getElementById('submit-btn').innerText = "Submit";
-            document.getElementById('cancel-btn').style.display = "none";
-        }
-
-        function deleteData(rowNum) {
-            if (!confirm("Are you sure you want to delete this row?")) return;
-
-            fetch(backendUrl, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ _row_num: rowNum }),
-            })
-            .then(response => response.json())
-            .then(result => {
-                if(result.status === 'success') {
-                    document.getElementById('search-input').value = '';
-                    loadData(); 
-                } else {
-                    alert('Error: ' + result.error);
-                }
-            });
-        }
-
-        loadData();
-    </script>
 </body>
 </html>

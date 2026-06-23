@@ -1,4 +1,5 @@
 import json
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import gspread
 from google.oauth2.service_account import Credentials
@@ -11,17 +12,17 @@ SCOPES = [
 credentials = Credentials.from_service_account_file('credentials.json', scopes=SCOPES)
 gc = gspread.authorize(credentials)
 
+# Your specific Google Sheet ID
 SPREADSHEET_ID = '1iTFZbpKfGyMM88zAwuwA4ts53sVLl8krB1kn3hfl-9M'
 
 # Security Variables
 ALLOWED_ORIGIN = "https://drug-info.himanshul-k-dhanshal.workers.dev"
-SECRET_API_KEY = "YourSuperSecretPassword123"  # You can change this to a unique password
+SECRET_API_KEY = "YourSuperSecretPassword123"
 
 class RequestHandler(BaseHTTPRequestHandler):
     
     def _send_cors_headers(self):
         origin = self.headers.get('Origin')
-        # Only attach CORS headers IF the origin exactly matches your Cloudflare URL
         if origin == ALLOWED_ORIGIN:
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -32,41 +33,57 @@ class RequestHandler(BaseHTTPRequestHandler):
         self._send_cors_headers()
         self.end_headers()
 
-    def do_GET(self):
-        # API Key Authorization Check
-        if f"key={SECRET_API_KEY}" not in self.path:
+    def get_query_params(self):
+        parsed_path = urllib.parse.urlparse(self.path)
+        return urllib.parse.parse_qs(parsed_path.query)
+
+    def is_authorized(self):
+        params = self.get_query_params()
+        if params.get('key', [None])[0] != SECRET_API_KEY:
             self.send_response(403)
             self._send_cors_headers()
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"error": "Unauthorized Access Denied"}).encode('utf-8'))
-            return
+            return False
+        return True
 
+    def do_GET(self):
+        if not self.is_authorized(): return
+        
         self.send_response(200)
         self._send_cors_headers()
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
         try:
-            sheet = gc.open_by_key(SPREADSHEET_ID).sheet1
-            data = sheet.get_all_records()
-            for index, row in enumerate(data):
-                row['_row_num'] = index + 2 
-            response = json.dumps(data)
+            spreadsheet = gc.open_by_key(SPREADSHEET_ID)
+            
+            # Fetch both relational tables
+            molecules_sheet = spreadsheet.worksheet("drug_molecule")
+            products_sheet = spreadsheet.worksheet("medicinal_product")
+            
+            m_data = molecules_sheet.get_all_records()
+            p_data = products_sheet.get_all_records()
+            
+            # Attach structural row numbers
+            for i, row in enumerate(m_data): row['_row_num'] = i + 2
+            for i, row in enumerate(p_data): row['_row_num'] = i + 2
+                
+            # Package into a single JSON response
+            response = json.dumps({
+                "molecules": m_data,
+                "inventory": p_data
+            })
         except Exception as e:
             response = json.dumps({"error": str(e)})
 
         self.wfile.write(response.encode('utf-8'))
 
     def do_POST(self):
-        # API Key Authorization Check
-        if f"key={SECRET_API_KEY}" not in self.path:
-            self.send_response(403)
-            self._send_cors_headers()
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "Unauthorized Access Denied"}).encode('utf-8'))
-            return
+        if not self.is_authorized(): return
+        params = self.get_query_params()
+        sheet_name = params.get('sheet', ['medicinal_product'])[0]
 
         self.send_response(200)
         self._send_cors_headers()
@@ -75,71 +92,43 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
-
+        
         try:
             new_row_data = json.loads(post_data.decode('utf-8'))
-            sheet = gc.open_by_key(SPREADSHEET_ID).sheet1
-            row_values = list(new_row_data.values())
+            sheet = gc.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
+            
+            headers = sheet.row_values(1)
+            row_values = [new_row_data.get(header, "") for header in headers]
+            
             sheet.append_row(row_values)
-            response = json.dumps({"status": "success"})
-        except Exception as e:
-            response = json.dumps({"error": str(e)})
-
-        self.wfile.write(response.encode('utf-8'))
-
-    def do_PUT(self):
-        # API Key Authorization Check
-        if f"key={SECRET_API_KEY}" not in self.path:
-            self.send_response(403)
-            self._send_cors_headers()
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "Unauthorized Access Denied"}).encode('utf-8'))
-            return
-
-        self.send_response(200)
-        self._send_cors_headers()
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-
-        content_length = int(self.headers['Content-Length'])
-        put_data = json.loads(self.rfile.read(content_length).decode('utf-8'))
-
-        try:
-            row_num = put_data.pop('_row_num')
-            sheet = gc.open_by_key(SPREADSHEET_ID).sheet1
-            row_values = list(put_data.values())
-            sheet.update(range_name=f'A{row_num}', values=[row_values])
-            response = json.dumps({"status": "success"})
+            response = json.dumps({"success": True})
         except Exception as e:
             response = json.dumps({"error": str(e)})
 
         self.wfile.write(response.encode('utf-8'))
 
     def do_DELETE(self):
-        # API Key Authorization Check
-        if f"key={SECRET_API_KEY}" not in self.path:
-            self.send_response(403)
-            self._send_cors_headers()
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "Unauthorized Access Denied"}).encode('utf-8'))
-            return
+        if not self.is_authorized(): return
+        params = self.get_query_params()
+        sheet_name = params.get('sheet', ['medicinal_product'])[0]
 
-        # Fixed CORS headers here
         self.send_response(200)
         self._send_cors_headers()
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
         content_length = int(self.headers['Content-Length'])
-        delete_data = json.loads(self.rfile.read(content_length).decode('utf-8'))
+        delete_data = self.rfile.read(content_length)
 
         try:
-            row_num = delete_data.get('_row_num')
-            sheet = gc.open_by_key(SPREADSHEET_ID).sheet1
+            data = json.loads(delete_data.decode('utf-8'))
+            row_num = data.get('_row_num')
+            if not row_num:
+                raise ValueError("Row number is required for deletion")
+            
+            sheet = gc.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
             sheet.delete_rows(row_num)
-            response = json.dumps({"status": "success"})
+            response = json.dumps({"success": True})
         except Exception as e:
             response = json.dumps({"error": str(e)})
 
@@ -148,7 +137,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 def run(server_class=HTTPServer, handler_class=RequestHandler, port=8000):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-    print(f"Starting server on port {port}")
+    print(f"Starting Pharma Relational API on port {port}...")
     httpd.serve_forever()
 
 if __name__ == '__main__':
