@@ -263,6 +263,18 @@
                 <div class="stat-num" id="stat-manufacturers">0</div>
                 <div class="stat-label">Manufacturers</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-num" id="stat-classes">0</div>
+                <div class="stat-label">Pharm Classes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="stat-brands">0</div>
+                <div class="stat-label">Unique Brands</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="stat-forms">0</div>
+                <div class="stat-label">Dosage Forms</div>
+            </div>
         </div>
 
         <div class="search-container">
@@ -321,11 +333,21 @@
                 // Process Quick Stats
                 const totalInventory = inventoryData.length;
                 const totalMolecules = moleculeData.length;
-                const manufacturers = new Set(inventoryData.map(item => item.Manufacturer_Name));
                 
+                // Use Sets to filter out duplicates and count unique values
+                // .filter(Boolean) ensures we don't count empty cells as a category
+                const manufacturers = new Set(inventoryData.map(item => item.Manufacturer_Name).filter(Boolean));
+                const uniqueClasses = new Set(moleculeData.map(item => item.Pharmacological_Class).filter(Boolean));
+                const uniqueBrands = new Set(inventoryData.map(item => item.Brand_Name).filter(Boolean));
+                const uniqueForms = new Set(inventoryData.map(item => item.Dosage_Form).filter(Boolean));
+                
+                // Inject the numbers into the HTML
                 document.getElementById("stat-inventory").innerText = totalInventory;
                 document.getElementById("stat-molecules").innerText = totalMolecules;
                 document.getElementById("stat-manufacturers").innerText = manufacturers.size;
+                document.getElementById("stat-classes").innerText = uniqueClasses.size;
+                document.getElementById("stat-brands").innerText = uniqueBrands.size;
+                document.getElementById("stat-forms").innerText = uniqueForms.size;
 
                 // Turn off loading screen, reveal the minimalist dashboard
                 document.getElementById("loading-state").style.display = "none";
