@@ -38,8 +38,16 @@ class RequestHandler(BaseHTTPRequestHandler):
         return urllib.parse.parse_qs(parsed_path.query)
 
     def is_authorized(self):
-        params = self.get_query_params()
-        if params.get('key', [None])[0] != SECRET_API_KEY:
+        # 1. Look for the key in the headers first (case-insensitive check)
+        client_key = self.headers.get('X-API-Key') or self.headers.get('x-api-key')
+        
+        # 2. Fallback: If not in headers, check the URL query parameters
+        if not client_key:
+            params = self.get_query_params()
+            client_key = params.get('key', [None])[0]
+
+        # 3. Validate against your secret key
+        if client_key != SECRET_API_KEY:
             self.send_response(403)
             self._send_cors_headers()
             self.send_header("Content-type", "application/json")
