@@ -83,6 +83,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.is_authorized(): return
         params = self.get_query_params()
+        # Default to medicinal_product if sheet isn't specified
         sheet_name = params.get('sheet', ['medicinal_product'])[0]
 
         self.send_response(200)
@@ -97,11 +98,35 @@ class RequestHandler(BaseHTTPRequestHandler):
             new_row_data = json.loads(post_data.decode('utf-8'))
             sheet = gc.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
             
+            # --- AUTO-GENERATION LOGIC START ---
+            all_records = sheet.get_all_records()
+            next_sno = len(all_records) + 1
+            
+            # Ensure S.No. is automatically injected
+            new_row_data['S.No.'] = next_sno
+            
+            # Generate the correct ID based on the tab
+            if sheet_name == "medicinal_product":
+                # Formats as PROD-0001, PROD-0002, etc.
+                new_row_data['Product_ID'] = f"PROD-{str(next_sno).zfill(4)}"
+            elif sheet_name == "drug_molecule":
+                # Formats as M-0001, M-0002, etc.
+                new_row_data['Molecule_ID'] = f"M-{str(next_sno).zfill(4)}"
+            # --- AUTO-GENERATION LOGIC END ---
+
+            # Map the data exactly to the spreadsheet headers
             headers = sheet.row_values(1)
             row_values = [new_row_data.get(header, "") for header in headers]
             
             sheet.append_row(row_values)
-            response = json.dumps({"success": True})
+            
+            # Return the newly generated IDs back to the frontend
+            response = json.dumps({
+                "success": True, 
+                "generated_sno": next_sno,
+                "generated_id": row_values[1] # Assuming ID is the second column
+            })
+            
         except Exception as e:
             response = json.dumps({"error": str(e)})
 
