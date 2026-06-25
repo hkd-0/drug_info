@@ -29,7 +29,6 @@
         .info-btn { background-color: #10B981; font-size: 13px;}
         .info-btn:hover { background-color: #059669; }
 
-        /* Modal Overlay Styles */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;
@@ -62,15 +61,16 @@
                 <tr>
                     <th>Product ID</th>
                     <th>Brand Name</th>
-                    <th>Molecule</th>
-                    <th>Strength</th>
+                    <th>Variant</th>
+                    <th>Active Ingredients</th>
+                    <th>Strengths</th>
                     <th>Dosage Form</th>
                     <th>Manufacturer</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="table-body">
-                <tr><td colspan="7" style="text-align:center;">Loading database...</td></tr>
+                <tr><td colspan="8" style="text-align:center;">Loading database...</td></tr>
             </tbody>
         </table>
     </div>
@@ -83,16 +83,14 @@
             <button class="close-btn" onclick="closeModal()">&times;</button>
         </div>
         <div id="modal-content">
-            </div>
+        </div>
     </div>
 </div>
 
 <script>
     const API_KEY = "YourSuperSecretPassword123";
-    // UPDATE THIS WITH YOUR RENDER URL
     const BACKEND_URL = `https://drug-info-backend-7jbi.onrender.com/?key=${API_KEY}`; 
     
-    // The "Engine" holding both tables in the browser memory
     let db = { molecules: [], inventory: [] };
 
     async function loadDatabase() {
@@ -103,7 +101,7 @@
             db = await response.json();
             renderTable();
         } catch (error) {
-            document.getElementById("table-body").innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Connection Error: ${error.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="8" style="text-align:center; color:red;">Connection Error: ${error.message}</td></tr>`;
         }
     }
 
@@ -114,22 +112,28 @@
 
         if (!db.inventory) return;
 
-        // Filter functionality
         const filteredProducts = db.inventory.filter(item => {
             return Object.values(item).some(val => String(val).toLowerCase().includes(searchTerm));
         });
 
         filteredProducts.forEach(product => {
-            // Relational Match: Find the parent molecule name using the ID
-            const molecule = db.molecules.find(m => m.Molecule_ID === product.Molecule_ID);
-            const moleculeName = molecule ? molecule.Molecule_Name : product.Molecule_ID;
+            const molIds = String(product.Molecule_IDs || product.Molecule_ID || "").split(',').map(s => s.trim()).filter(s => s);
+            const strengths = String(product.Strengths || product.Strength || "").split(',').map(s => s.trim()).filter(s => s);
+
+            const moleculeNames = molIds.map(id => {
+                const mol = db.molecules.find(m => String(m.Molecule_ID) === id || String(m.Molecule_Name) === id);
+                return mol ? mol.Molecule_Name : id;
+            }).join(', ');
+
+            const strengthDisplay = strengths.join(', ');
 
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td style="color: #6B7280; font-family: monospace;">${product.Product_ID || ''}</td>
                 <td><strong>${product.Brand_Name || ''}</strong></td>
-                <td>${moleculeName || ''}</td>
-                <td>${product.Strength || ''}</td>
+                <td>${product.Variant || ''}</td>
+                <td>${moleculeNames || ''}</td>
+                <td>${strengthDisplay || ''}</td>
                 <td>${product.Dosage_Form || ''}</td>
                 <td>${product.Manufacturer || ''}</td>
                 <td>
@@ -141,47 +145,57 @@
     }
 
     function showDetails(productId) {
-        // Step 1: Grab the child product
         const product = db.inventory.find(p => p.Product_ID === productId);
         if (!product) return;
         
-        // Step 2: Grab the parent medical data using the linked Molecule_ID
-        const molecule = db.molecules.find(m => m.Molecule_ID === product.Molecule_ID);
+        document.getElementById("modal-brand-name").innerText = product.Brand_Name + " " + (product.Variant || "");
         
-        document.getElementById("modal-brand-name").innerText = product.Brand_Name || "Drug Details";
-        
-        let contentHtml = `
-            <div class="detail-row">
-                <div class="detail-label">Active Pharmaceutical Ingredient</div>
-                <div class="detail-value" style="color: var(--primary); font-weight: 500;">
-                    ${molecule ? molecule.Molecule_Name : 'Unknown'} (${product.Strength})
-                </div>
-            </div>
-        `;
+        const moleculeList = String(product.Molecule_IDs || product.Molecule_ID || "").split(',').map(item => item.trim()).filter(i => i);
+        const strengthList = String(product.Strengths || product.Strength || "").split(',').map(item => item.trim()).filter(i => i);
 
-        // Step 3: Inject the core medical data if the relational link exists
-        if (molecule) {
+        let contentHtml = '<div style="margin-bottom: 20px;">';
+
+        moleculeList.forEach((molId, index) => {
+            const molecule = db.molecules.find(m => String(m.Molecule_ID) === molId || String(m.Molecule_Name) === molId);
+            const currentStrength = strengthList[index] ? strengthList[index] : '';
+
             contentHtml += `
-                <div class="detail-row">
-                    <div class="detail-label">Pharmacological Class</div>
-                    <div class="detail-value">${molecule.Pharm_Class || 'N/A'}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Indications</div>
-                    <div class="detail-value">${molecule.Indications || 'N/A'}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Side Effects</div>
-                    <div class="detail-value">${molecule.Side_Effects || 'N/A'}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Contraindications</div>
-                    <div class="detail-value">${molecule.Contraindications || 'N/A'}</div>
-                </div>
+                <div style="background: #F3F4F6; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid var(--primary);">
+                    <div class="detail-row" style="margin-bottom: 10px;">
+                        <div class="detail-label">Active Pharmaceutical Ingredient ${index + 1}</div>
+                        <div class="detail-value" style="color: var(--primary); font-weight: bold; font-size: 16px;">
+                            ${molecule ? molecule.Molecule_Name : molId} <span style="color:#4B5563; font-weight:normal; font-size:14px;">(${currentStrength})</span>
+                        </div>
+                    </div>
             `;
-        } else {
-            contentHtml += `<p style="color:#EF4444; background: #FEF2F2; padding: 10px; border-radius: 4px;">Medical data for molecule ID '${product.Molecule_ID}' is missing in the core dataset.</p>`;
-        }
+
+            if (molecule) {
+                contentHtml += `
+                    <div class="detail-row">
+                        <div class="detail-label">Pharmacological Class</div>
+                        <div class="detail-value">${molecule.Pharm_Class || 'N/A'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Indications</div>
+                        <div class="detail-value">${molecule.Indications || 'N/A'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Side Effects</div>
+                        <div class="detail-value">${molecule.Side_Effects || 'N/A'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Contraindications</div>
+                        <div class="detail-value">${molecule.Contraindications || 'N/A'}</div>
+                    </div>
+                `;
+            } else {
+                contentHtml += `<p style="color:#EF4444; font-size: 13px; margin-top:5px;">Medical data for '${molId}' is missing in the core dataset.</p>`;
+            }
+
+            contentHtml += '</div>'; 
+        });
+
+        contentHtml += '</div>'; 
 
         document.getElementById("modal-content").innerHTML = contentHtml;
         document.getElementById("details-modal").style.display = "flex";
@@ -191,7 +205,6 @@
         document.getElementById("details-modal").style.display = "none";
     }
 
-    // Initialize the App
     loadDatabase();
 </script>
 
