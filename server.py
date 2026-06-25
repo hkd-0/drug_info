@@ -26,7 +26,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         if origin == ALLOWED_ORIGIN:
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type, X-API-Key")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, X-API-Key, x-api-key")
 
     def do_OPTIONS(self):
         self.send_response(200, "ok")
