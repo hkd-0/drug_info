@@ -117,8 +117,9 @@
         });
 
         filteredProducts.forEach(product => {
-            const molIds = String(product.Molecule_IDs || product.Molecule_ID || "").split(',').map(s => s.trim()).filter(s => s);
-            const strengths = String(product.Strengths || product.Strength || "").split(',').map(s => s.trim()).filter(s => s);
+            // Mapped to exact Google Sheet column headers
+            const molIds = String(product['Molecule_ID(s)'] || "").split(',').map(s => s.trim()).filter(s => s);
+            const strengths = String(product['Strength(s)'] || "").split(',').map(s => s.trim()).filter(s => s);
 
             const moleculeNames = molIds.map(id => {
                 const mol = db.molecules.find(m => String(m.Molecule_ID) === id || String(m.Molecule_Name) === id);
@@ -131,11 +132,11 @@
             tr.innerHTML = `
                 <td style="color: #6B7280; font-family: monospace;">${product.Product_ID || ''}</td>
                 <td><strong>${product.Brand_Name || ''}</strong></td>
-                <td>${product.Variant || ''}</td>
+                <td>${product['Variant_Name'] || ''}</td>
                 <td>${moleculeNames || ''}</td>
                 <td>${strengthDisplay || ''}</td>
                 <td>${product.Dosage_Form || ''}</td>
-                <td>${product.Manufacturer || ''}</td>
+                <td>${product['Manufacturer_Name'] || ''}</td>
                 <td>
                     <button class="info-btn" onclick="showDetails('${product.Product_ID}')">View Medical Info</button>
                 </td>
@@ -148,10 +149,11 @@
         const product = db.inventory.find(p => p.Product_ID === productId);
         if (!product) return;
         
-        document.getElementById("modal-brand-name").innerText = product.Brand_Name + " " + (product.Variant || "");
+        // Modal title includes Variant_Name now
+        document.getElementById("modal-brand-name").innerText = product.Brand_Name + " " + (product['Variant_Name'] || "");
         
-        const moleculeList = String(product.Molecule_IDs || product.Molecule_ID || "").split(',').map(item => item.trim()).filter(i => i);
-        const strengthList = String(product.Strengths || product.Strength || "").split(',').map(item => item.trim()).filter(i => i);
+        const moleculeList = String(product['Molecule_ID(s)'] || "").split(',').map(item => item.trim()).filter(i => i);
+        const strengthList = String(product['Strength(s)'] || "").split(',').map(item => item.trim()).filter(i => i);
 
         let contentHtml = '<div style="margin-bottom: 20px;">';
 
