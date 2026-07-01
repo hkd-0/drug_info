@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharma Biz Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafafa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            padding: 60px 20px;
+            box-sizing: border-box;
+        }
+
+        /* Loading Screen */
+        #loading-state {
+            text-align: center;
+            margin-top: 20vh;
+            font-size: 1.1rem;
+            color: #888;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Dashboard Content (Hidden by Default) */
+        #dashboard-content {
+            display: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-weight: 300;
+            font-size: 2.8rem;
+            margin: 0 0 10px 0;
+            color: #111;
+            letter-spacing: -1px;
+        }
+
+        /* Minimalist Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border: 1px solid #eaeaea;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-num {
+            font-size: 2.8rem;
+            font-weight: 600;
+            color: #2563eb;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6b7280;
+        }
+
+        /* Search Area */
+        .search-container {
+            width: 100%;
+            max-width: 750px;
+            margin: 0 auto 40px auto;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 22px 30px;
+            font-size: 1.2rem;
+            border: 1px solid #d1d5db;
+            border-radius: 50px;
+            outline: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+            transition: all 0.3s;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15);
+        }
+
+        /* Results Table (Hidden by Default) */
+        #search-results {
+            display: none; 
+            background: #fff;
+            border: 1px solid #eaeaea;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #4b5563;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            color: #111;
+            font-size: 0.95rem;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: #fdfdfd; }
+
+        .btn-view {
+            background: #f3f4f6;
+            color: #3b82f6;
+            border: 1px solid #e5e7eb;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-view:hover {
+            background: #3b82f6;
+            color: #fff;
+            border-color: #3b82f6;
+        }
+
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 40px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px; right: 25px;
+            cursor: pointer;
+            font-size: 1.8rem;
+            color: #9ca3af;
+            line-height: 1;
+        }
+
+        .close-btn:hover { color: #111; }
+
+        .modal-content h3 {
+            margin-top: 0; font-size: 1.5rem; color: #111; margin-bottom: 5px;
+        }
+
+        .molecule-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .molecule-card h4 {
+            margin: 0 0 10px 0; color: #2563eb; font-size: 1.2rem;
+        }
+
+        .molecule-card p {
+            margin: 8px 0; font-size: 0.95rem; line-height: 1.5; color: #374151;
+        }
+        .molecule-card strong { color: #111; }
+    </style>
+</head>
+<body>
+
+    <div id="loading-state">
+        <div class="spinner"></div>
+        <div id="loading-text">Syncing with Core Database...</div>
+    </div>
+
+    <div class="container" id="dashboard-content">
+        
+        <div class="header">
+            <h1>Pharma Database</h1>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-num" id="stat-inventory">0</div>
+                <div class="stat-label">Formulations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="stat-molecules">0</div>
+                <div class="stat-label">Unique APIs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="stat-manufacturers">0</div>
+                <div class="stat-label">Manufacturers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="stat-classes">0</div>
+                <div class="stat-label">Pharmacological Classes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="stat-brands">0</div>
+                <div class="stat-label">Brands</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="stat-forms">0</div>
+                <div class="stat-label">Dosage Forms</div>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="search-box" class="search-input" placeholder="Search by brand, molecule, class, or side effect..." onkeyup="searchDatabase(this.value)">
+        </div>
+
+        <div id="search-results">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Brand</th>
+                        <th>Variant</th>
+                        <th>Strength</th>
+                        <th>Form</th>
+                        <th>Manufacturer</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div id="modal-details"></div>
+        </div>
+    </div>
+    <button onclick="localStorage.removeItem('pharma_secret_key'); location.reload();" style="position: absolute; top: 10px; right: 10px; font-size: 12px; padding: 4px 8px; opacity: 0.6; cursor: pointer;">Reset Key</button>
+
+    <script>
+        let inventoryData = [];
+        let moleculeData = [];
+        // 1. Check if the browser already has the key saved permanently
+        let userKey = localStorage.getItem("pharma_secret_key");
+
+        // 2. If no key is found (first time ever on this device), ask for it
+        if (!userKey) {
+            userKey = prompt("First Time Setup: Enter your Database API Key:");
+            if (userKey) {
+                localStorage.setItem("pharma_secret_key", userKey);
+            } else {
+                // Erase the page and halt the script if no key is provided
+                document.body.innerHTML = "<h2 style='text-align:center; margin-top: 50px; font-family: sans-serif;'>Access Denied. Please refresh and try again.</h2>";
+                throw new Error("No API key provided."); 
+            }
+        }
+
+        // 1. Fetch data silently in the background on load
+        window.onload = async function() {
+            try {
+                // REPLACE THIS LINK WITH YOUR PYTHON BACKEND URL
+                const response = await fetch("/api/database", {
+                    method: "GET",
+                    headers: {
+                        // REPLACE THIS WITH YOUR ACTUAL SECRET API KEY
+                        "X-API-Key": userKey, 
+                        "Content-Type": "application/json"
+                    }
+                }); 
+                
+                if (!response.ok) throw new Error("Network response was not ok: " + response.status);
+                
+                const data = await response.json();
+                
+                inventoryData = data.medicinal_product || data.inventory || [];
+                moleculeData = data.drug_molecule || data.molecules || [];
+                
+                // Process Quick Stats
+                const totalInventory = inventoryData.length;
+                const totalMolecules = moleculeData.length;
+                
+                // Use Sets to filter out duplicates and count unique values
+                // .filter(Boolean) ensures we don't count empty cells as a category
+                const manufacturers = new Set(inventoryData.map(item => item.Manufacturer_Name).filter(Boolean));
+                const uniqueClasses = new Set(moleculeData.map(item => item.Pharmacological_Class).filter(Boolean));
+                const uniqueBrands = new Set(inventoryData.map(item => item.Brand_Name).filter(Boolean));
+                const uniqueForms = new Set(inventoryData.map(item => item.Dosage_Form).filter(Boolean));
+                
+                // Inject the numbers into the HTML
+                document.getElementById("stat-inventory").innerText = totalInventory;
+                document.getElementById("stat-molecules").innerText = totalMolecules;
+                document.getElementById("stat-manufacturers").innerText = manufacturers.size;
+                document.getElementById("stat-classes").innerText = uniqueClasses.size;
+                document.getElementById("stat-brands").innerText = uniqueBrands.size;
+                document.getElementById("stat-forms").innerText = uniqueForms.size;
+
+                // Turn off loading screen, reveal the minimalist dashboard
+                document.getElementById("loading-state").style.display = "none";
+                document.getElementById("dashboard-content").style.display = "block";
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                document.getElementById("loading-text").innerText = "Failed to connect to the database.";
+                document.querySelector(".spinner").style.display = "none";
+            }
+        };
+
+        // 2. Deep Relational Search Logic
+        function searchDatabase(query) {
+            const q = query.toLowerCase().trim();
+            const resultsContainer = document.getElementById("search-results");
+            const tableBody = document.getElementById("table-body");
+            
+            // Core Rule: If search is empty, hide the table entirely
+            if (q === "") {
+                resultsContainer.style.display = "none";
+                return;
+            }
+            
+            const results = inventoryData.filter(item => {
+                // Check if the query matches the physical box (Brand, Form, Manufacturer)
+                const matchInventory = Object.values(item).some(val => 
+                    String(val).toLowerCase().includes(q)
+                );
+                
+                // Deep Search: Check if the query matches the medical science (Class, Contraindications, etc.)
+                let matchMolecule = false;
+                if (item['Molecule_ID(s)']) {
+                    const moleculeIds = String(item['Molecule_ID(s)']).split(',').map(id => id.trim());
+                    
+                    matchMolecule = moleculeIds.some(id => {
+                        const mol = moleculeData.find(m => m.Molecule_ID === id);
+                        if (mol) {
+                            return Object.values(mol).some(val => String(val).toLowerCase().includes(q));
+                        }
+                        return false;
+                    });
+                }
+                
+                return matchInventory || matchMolecule;
+            });
+            
+            // Render results
+            tableBody.innerHTML = "";
+            
+            if (results.length === 0) {
+                tableBody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding: 30px; color: #6b7280;'>No matching records found in the database.</td></tr>";
+            } else {
+                results.forEach(item => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td><strong>${item.Brand_Name || ''}</strong></td>
+                        <td>${item.Variant_Name || ''}</td>
+                        <td>${item['Strength(s)'] || ''}</td>
+                        <td>${item.Dosage_Form || ''}</td>
+                        <td>${item.Manufacturer_Name || ''}</td>
+                        <td><button onclick="showDetails('${item.Product_ID}')" class="btn-view">View Info</button></td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+            
+            // Reveal the table
+            resultsContainer.style.display = "block";
+        }
+
+        // 3. Keep the Modal Popup feature
+        function showDetails(productId) {
+            const product = inventoryData.find(p => p.Product_ID === productId);
+            if (!product) return;
+            
+            const modalContent = document.getElementById("modal-details");
+            modalContent.innerHTML = `<h3>${product.Brand_Name}</h3><p style="color:#6b7280; margin-top:0;">${product.Variant_Name} | ${product.Manufacturer_Name}</p>`;
+            
+            const moleculeIds = String(product['Molecule_ID(s)']).split(',').map(id => id.trim());
+            
+            moleculeIds.forEach(id => {
+                const mol = moleculeData.find(m => m.Molecule_ID === id);
+                if (mol) {
+                    modalContent.innerHTML += `
+                        <div class="molecule-card">
+                            <h4>${mol.Molecule_Name}</h4>
+                            <p><strong>Pharmacological Class:</strong> ${mol.Pharmacological_Class || 'N/A'}</p>
+                            <p><strong>Indications:</strong> ${mol.Indications || 'N/A'}</p>
+                            <p><strong>Side Effects:</strong> ${mol.Side_Effects || 'N/A'}</p>
+                            <p><strong>Contraindications:</strong> ${mol.Contraindications || 'N/A'}</p>
+                        </div>
+                    `;
+                }
+            });
+            
+            document.getElementById("modal").style.display = "flex";
+        }
+
+        function closeModal() {
+            document.getElementById("modal").style.display = "none";
+        }
+    </script>
+</body>
+</html>
