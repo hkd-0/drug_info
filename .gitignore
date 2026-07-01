@@ -6,7 +6,7 @@ package.json
 # credentials
 .env
 credentials.json
-myenv/
+venv/
 
 # Python and System files
 __pycache__/

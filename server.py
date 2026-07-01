@@ -61,9 +61,17 @@ class RequestHandler(BaseHTTPRequestHandler):
         return True
 
     def do_GET(self):
-        
+        # 1. NEW DUMMY ROUTE FOR PINGING
+        if self.path == '/ping':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.send_header('Access-Control-Allow-Origin', '*') # CORS just in case
+            self.end_headers()
+            self.wfile.write(b"Server is awake!")
+            return # Stop execution here so it doesn't touch Google Sheets!
+
         if not self.is_authorized(): return
-        
+
         self.send_response(200)
         self._send_cors_headers()
         self.send_header('Content-type', 'application/json')
